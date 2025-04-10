@@ -1,0 +1,75 @@
+# An example config file for an experiment.
+defaults:
+  # Common setup.
+  - setup
+  # This file.
+  - _self_
+  # Optional override (untracked by git, must not impact reproducibility).
+  - optional override: train_8M
+
+######################################################################
+
+is_this_overridden: no
+
+######## MODEL ########
+model_name_or_path: facebook/esm2_t6_8M_UR50D # facebook/esm2_t33_650M_UR50D # facebook/esm2_t12_35M_UR50D # facebook/esm2_t6_8M_UR50D # 
+use_flash_attention: True
+use_cross_attention: True
+freeze_encoder: True
+train_only_cross_attention: True # If False all the decoder self-attention layers are trained too with lr: `learning_rate`
+tie_weights_encoder_decoder: False # If True, the weights of the encoder and decoder are tied
+skip_cross_ratio: 0 # Ratio of times when the input has context=None (skip cross-attention)
+layers_with_cross_attention: all # "all", "last", "none" or [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+gate_selection_function: null # random-N top-N (where N is an integer)
+device: cuda
+
+######## DATA ########
+# Data seeds
+torch_seed: 42
+np_seed: 42
+# Dataset
+dataset_name: TEST_OpenProteinSet_uniclust30-filtered # example_dataset
+num_seq: 1 # How many sequences to use as context from the dataset
+context_sampling: closest-hamming-order # How to sample context: same-sequence, closest-hamming-order, random, closest-homologs, closest-hamming-random, top-10, exponential
+pe_scores_threshold: null # Use a threshold to filter the input sequences based on their PE scores
+max_length: 640 # Maximum length of the input sequence (cropped)
+max_length_context: 1024 # Maximum length of the context sequence (cropped)
+repeat_validation: 1 # Repeat the validation set n times when evaluating (this means that each cluster will be evaluated n times using different input/context sequences each time)
+show_cross_attentions: False # If True, show the cross-attention weights in the wandb logs
+
+######## TRAINING ########
+hyperparameter_search: False
+per_device_batch_size: 32
+gradient_accumulation_steps: 32
+dropout: 0.0
+max_grad_norm: 1.0
+shuffle: True
+num_workers: 32
+mlm: True
+mlm_probability: 0.15
+diffusion_mlm: False
+random_padding: False
+rescale_loss_diffusion: False
+take_average_embeddings: False
+warmup_steps: 0
+num_train_epochs: 100
+use_bf16: True
+evaluate_only: False # If True, only evaluate the model (checkpoint_dir must be set, worth setting `repeat_validation` to a value > 1)
+per_device_eval_batch_size: 32
+resume_from_checkpoint: False # If True, resume training from the checkpoint_dir
+load_pretrained: False # Load a pretrained model to resume training (doesn't load the optimizer and scheduler as in `resume_from_checkpoint`)
+checkpoint_dir: /home/sgarboss/Documents/rag-esm/outputs/esm2_t6_8M_UR50D/2024-11-01_00:46:58/checkpoint-21000 # null # Path to the checkpoint directory to resume training or evaluate the model
+
+######## OPTIMIZER ########
+learning_rate: 1e-4 # Learning rate used to train ESM2 models: 4e-4
+lr_cross_attention: 1e-3
+adam_beta1: 0.9
+adam_beta2: 0.98
+weight_decay: 0.01
+
+######## LOGGING ########
+run_name: ${now:%Y-%m-%d_%H:%M:%S}
+logging_events_per_epoch: 40
+eval_events_per_epoch: 4
+save_events_per_epoch: 0.25
+save_total_limit: 20
