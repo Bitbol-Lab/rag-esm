@@ -261,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument("--training_config_path", type=str, required=True)
     parser.add_argument("--checkpoint_dir", type=str, required=True)
     parser.add_argument("--outputs_dir", type=str, required=True)
-    parser.add_argument("--dataset_path", type=str, required=True)
+    parser.add_argument("--dataset_path", type=str, required=False, default=None,)
     parser.add_argument("--input_path", type=str, default=None, help="Path to the fasta file with the input sequences, to specify masked positions \
         use the special token `<mask>` in the sequence or the gap symbol: `-`")
     parser.add_argument("--context_path", type=str, default=None)
