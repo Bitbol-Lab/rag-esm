@@ -2,10 +2,41 @@
 
 ## Overview
 
-This repository contains the code for "RAG-ESM": a method for training a RAG model based on the [ESM2 pre-trained models](https://www.science.org/doi/10.1126/science.ade2574). The model uses cross attention layers to improve the performance of ESM2 models by conditioning the generation of masked protein sequences on embeddings of sequences that are homologous to the masked sequence. The model is trained on the [OpenProteinSet](https://registry.opendata.aws/openfold/) dataset.
-The model was also trained on the discrete diffusion task using a variable masking probability, therefore it can be used to generate sequences with different levels of noise (masking) via a denoising process.
+This repository contains the code for [**RAG-ESM: Improving pretrained protein language models via sequence retrieval**](https://www.biorxiv.org/content/early/2025/06/13/2025.04.02.646805).
 
-## Structure of the repository and Reproduction of the results
+RAG-ESM is a retrieval-augmented framework that allows to condition pretrained ESM2 protein language models on homologous sequences, using a minimal number of additional cross-attention parameters and minimal computational cost. This project is based on the [ESM2 pre-trained models](https://www.science.org/doi/10.1126/science.ade2574) and is trained on the [OpenProteinSet](https://registry.opendata.aws/openfold/) dataset.
+
+## Technical details
+
+RAG-ESM is an encoder-decoder model that improves the capabilities of pretrained protein language models (pLMs) like ESM2 through retrieval-based conditioning. The core idea is to leverage homologous sequences to provide contextual information, improving the model's predictive performance and allowing for conditional generation of novel sequences.
+
+The model takes as input a masked protein sequence and a related "context" sequence (e.g., a homolog). The architecture consists of:
+
+- Encoder: A pretrained ESM2 model that generates an embedding for the unmasked context sequence.
+- Decoder: Based on the same pretrained ESM2, this module processes the masked input sequence. It is augmented with newly initialized cross-attention layers that integrate the context embedding from the encoder.
+
+The weights of the underlying ESM2 layers are shared between the encoder and decoder, making the model parameter-efficient.
+
+<img src="data/architecture.png" width="640"/>
+
+
+We fine-tune the model on pairs of homologous sequences using a masked language modeling objective with a discrete diffusion scheme. This approach not only improves the prediction of masked amino acids but also transforms the model into a conditional generator. By providing a context sequence with desired properties (e.g., from a specific protein family), RAG-ESM can generate novel sequences within a targeted region of the protein sequence space. Additionally, we introduce an Error Correction strategy during the denoising process, allowing the model to iteratively revise and improve the quality of the generated sequences.
+
+## Getting started
+
+To run the code it is necessary to make an environment with the dependencies listed in the `environment.yml` file. When in the project root directory run:
+```bash
+conda env create --file installation/conda-osx-arm64-mps/environment.yml
+```
+To train your model you can use the following command:
+
+```bash
+python src/rag_esm/train.py
+```
+
+To modify the hyperparameters change the `train.yaml` file in the `src/rag_esm/configs` directory.
+
+## Structure of the repository
 
 You will find the code for training the model in the `src` directory. The code is organized as follows:
 
@@ -24,23 +55,10 @@ src/rag_esm: contains the code for the RAG-ESM model
 
 data: contains some example fasta files to test the model capabilities together with the test set used to evaluate the model in the paper (`clusters_test_set.txt`) and an example training set made of few clusters (`example_dataset`) generated using the code in `src/rag_esm/utils/parse_datasets.ipynb`.
 
-## Getting started
-
-To run the code it is necessary to make an environment with the dependencies listed in the `environment.yml` file. When in the project root directory run:
-```bash
-conda env create --file installation/conda-osx-arm64-mps/environment.yml
-```
-To train your model you can use the following command:
-
-```bash
-python src/rag_esm/train.py
-```
-
-To modify the hyperparameters change the `train.yaml` file in the `src/rag_esm/configs` directory.
-
 ## Sample sequences from the model
 
-Example script to sample sequences from the model using the denoising process. The input sequences in `example_input_sequences.fasta` are masked in different ways to show different methods to sample from the model (e.g. using `<mask>` tokens or `-` is interchangeable, also one can decide which parts of the sequences should be masked to allow for inpainting/scaffolding). The context sequences in `example_context_sequences.fasta` are used to condition the generation of the novel sequences. The context sequences can be homologous sequences or any other sequences that can provide useful information for the generation (the latter case is not what the model was trained on, but it can be useful in some cases).
+Example script to sample sequences from the model using the denoising process.
+To sample form the model you have to create two `fasta` files with the input masked sequences (it's possible to use either `<mask>` or `-` to denote masked residues) and their associated context sequence in the same position in each file, they should have the same format as: `data/example_fasta_files/example_input_sequences.fasta` and `data/example_fasta_files/example_context_sequences.fasta`. The input sequences in `example_input_sequences.fasta` are masked in different ways to show different methods to sample from the model (e.g. using `<mask>` tokens or `-` is interchangeable, also one can decide which parts of the sequences should be masked to allow for inpainting/scaffolding). The context sequences in `example_context_sequences.fasta` are used to condition the generation of the novel sequences in the same position in the input file. The context sequences can be homologous sequences or any other sequences that can provide useful information for the generation (the latter case is not what the model was trained on, but it can be useful in some cases).
 
 ``` bash
 python src/rag_esm/sample.py
@@ -63,6 +81,7 @@ python src/rag_esm/sample.py
 --save_intermediate_steps # save intermediate steps of the denoising process
 --compute_perplexities # compute perplexities of the generated sequences using ESM650M
 ```
+
 ## Sample novel sequences from the model conditioned on sequences sampled from the test set clusters
 
 Here we provide an example of how to sample novel sequences from the model conditioned on test set clusters. The input sequences are fully masked and their length is randomly sampled from the length distribution of each cluster. The context sequences are sampled from the same cluster and are used to condition the generation of the novel sequences.
@@ -105,7 +124,22 @@ python src/rag_esm/sample.py
 --iterations=100
 --save_intermediate_steps
 --compute_perplexities
+```
 
+## Citation
+
+``` bibtex
+@article {Sgarbossa2025,
+	author = {Sgarbossa, Damiano and Bitbol, Anne-Florence},
+	title = {RAG-ESM: Improving pretrained protein language models via sequence retrieval},
+	elocation-id = {2025.04.02.646805},
+	year = {2025},
+	doi = {10.1101/2025.04.02.646805},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2025/06/13/2025.04.02.646805},
+	eprint = {https://www.biorxiv.org/content/early/2025/06/13/2025.04.02.646805.full.pdf},
+	journal = {bioRxiv}
+}
 ```
 
 ## Licenses and acknowledgements
