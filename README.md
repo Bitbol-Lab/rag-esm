@@ -36,6 +36,10 @@ python src/rag_esm/train.py
 
 To modify the hyperparameters change the `train.yaml` file in the `src/rag_esm/configs` directory.
 
+## Model weights
+
+The model weights are available on the release page of this repository in the file: `weights.zip` at this link: [RAG-ESM Weights](https://github.com/Bitbol-Lab/rag-esm/releases/tag/v1.0).
+
 ## Structure of the repository
 
 You will find the code for training the model in the `src` directory. The code is organized as follows:
